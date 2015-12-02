@@ -210,10 +210,21 @@ static void show_clat_percentiles(unsigned int *io_u_plat, unsigned long nr,
 	unsigned int *ovals;
 	int is_last, per_line, scale_down;
 	char fmt[32];
-	int cCounter;
-	for(cCounter=0; cCounter<45 ;cCounter++){
+	int cCounter=0;
+	/*for(cCounter=0; cCounter<45 ;cCounter++){
 		printf("%d --> %d \n",arr[cCounter],countArr[cCounter]);
+	}*/
+	FILE *fp;
+
+	fp=fopen("output.csv","w+");
+	fprintf(fp,"Buckets, Latencies");
+	for(cCounter=0;cCounter<45;cCounter++){
+		fprintf(fp,"\n%d",arr[cCounter]);
+		fprintf(fp,",%d",countArr[cCounter]);
 	}
+	fclose(fp);
+
+
 	len = calc_clat_percentiles(io_u_plat, nr, plist, &ovals, &maxv, &minv);
 	if (!len)
 		goto out;
