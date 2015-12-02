@@ -18,7 +18,7 @@
 #include "lib/output_buffer.h"
 
 struct fio_mutex *stat_mutex;
-int countArr[44] = {0};
+int countArr[45] = {0};
 
 void update_rusage_stat(struct thread_data *td)
 {
@@ -52,11 +52,16 @@ static unsigned int plat_val_to_idx(unsigned int val)
 
 	int arr[] = {0, 10, 25, 50, 65, 75, 90, 100, 120, 150, 180, 200, 220, 250, 300, 350, 400, 500, 750, 1000, 1200,
 			1500, 2000, 2200, 2700, 3300, 3900, 4700, 5600, 6800, 8200, 10000, 12000, 15000, 18000, 20000,
-			25000, 30000, 50000, 100000, 500000, 1000000, 4000000, 10000000};
+			25000, 30000, 50000, 100000, 500000, 1000000, 4000000, 10000000, 12000000};
 	int arr_iterator;
 	for(arr_iterator=0;arr_iterator<(sizeof(arr)/sizeof(arr[0]));arr_iterator++){
 		if(val<arr[arr_iterator]){
 			countArr[arr_iterator]+=1;
+			break;
+		}
+		if(val>=10000000){
+			countArr[44]+=1;
+			break;
 		}
 	}
 	/* Find MSB starting from bit 0 */
@@ -200,14 +205,14 @@ static void show_clat_percentiles(unsigned int *io_u_plat, unsigned long nr,
 {
 	int arr[] = {0, 10, 25, 50, 65, 75, 90, 100, 120, 150, 180, 200, 220, 250, 300, 350, 400, 500, 750, 1000, 1200,
 			1500, 2000, 2200, 2700, 3300, 3900, 4700, 5600, 6800, 8200, 10000, 12000, 15000, 18000, 20000,
-			25000, 30000, 50000, 100000, 500000, 1000000, 4000000, 10000000};
+			25000, 30000, 50000, 100000, 500000, 1000000, 4000000, 10000000,12000000};
 	unsigned int len, j = 0, minv, maxv;
 	unsigned int *ovals;
 	int is_last, per_line, scale_down;
 	char fmt[32];
-	int countArrCounter;
-	for(countArrCounter=0; countArrCounter<(sizeof(countArr)/sizeof(countArr[0])) ;countArrCounter++){
-		printf("%d --> %d \n",arr[countArrCounter],countArr[countArrCounter]);
+	int cCounter;
+	for(cCounter=0; cCounter<45 ;cCounter++){
+		printf("%d --> %d \n",arr[cCounter],countArr[cCounter]);
 	}
 	len = calc_clat_percentiles(io_u_plat, nr, plist, &ovals, &maxv, &minv);
 	if (!len)
