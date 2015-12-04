@@ -20,17 +20,17 @@
 #include "lib/output_buffer.h"
 
 struct fio_mutex *stat_mutex;
-int countReadArr[45] = {0};
-int countWriteArr[45] = {0};
+float countReadArr[44][2] = {0};
+float countWriteArr[44][2] = {0};
 int read_write_flag=0;
 
-int max_read_latency = INT_MIN;
+int max_read_latency = 0;
 int min_read_latency = INT_MAX;
-int avg_read_latency =0;
+float sum_read_latency =0;
 
-int max_write_latency = INT_MIN;
+int max_write_latency = 0;
 int min_write_latency = INT_MAX;
-int avg_write_latency =0;
+float sum_write_latency =0;
 
 void update_rusage_stat(struct thread_data *td)
 {
@@ -62,23 +62,23 @@ static unsigned int plat_val_to_idx(unsigned int val, enum fio_ddir ddir)
 {
 	unsigned int msb, error_bits, base, offset, idx;
 
-	int arr[] = {0, 10, 25, 50, 65, 75, 90, 100, 120, 150, 180, 200, 220, 250, 300, 350, 400, 500, 750, 1000, 1200,
+	int arr[] = {10, 25, 50, 65, 75, 90, 100, 120, 150, 180, 200, 220, 250, 300, 350, 400, 500, 750, 1000, 1200,
 			1500, 2000, 2200, 2700, 3300, 3900, 4700, 5600, 6800, 8200, 10000, 12000, 15000, 18000, 20000,
 			25000, 30000, 50000, 100000, 500000, 1000000, 4000000, 10000000, 12000000};
 	int arr_iterator;
 	for(arr_iterator=0;arr_iterator<(sizeof(arr)/sizeof(arr[0]));arr_iterator++){
 		if(val<arr[arr_iterator]){
 			if(ddir==0){
-				countReadArr[arr_iterator]+=1;
-				avg_read_latency+=val;
+				countReadArr[arr_iterator][0]+=1;
+				sum_read_latency+=val;
 				if(val>max_read_latency)
 					max_read_latency = val;
 				if(val<min_read_latency)
 					min_read_latency=val;
 			}
 			else{
-				countWriteArr[arr_iterator]+=1;
-				avg_write_latency+=val;
+				countWriteArr[arr_iterator][0]+=1;
+				sum_write_latency+=val;
 				if(val>max_write_latency)
 					max_write_latency = val;
 				if(val<min_write_latency)
@@ -88,16 +88,16 @@ static unsigned int plat_val_to_idx(unsigned int val, enum fio_ddir ddir)
 		}
 		if(val>=10000000){
 			if(ddir==0){
-				countReadArr[44]+=1;
-				avg_read_latency+=val;
+				countReadArr[43][0]+=1;
+				sum_read_latency+=val;
 				if(val>max_read_latency)
 					max_read_latency = val;
 				if(val<min_read_latency)
 					min_read_latency=val;
 			}
 			else{
-				countWriteArr[44]+=1;
-				avg_write_latency+=val;
+				countWriteArr[43][0]+=1;
+				sum_write_latency+=val;
 				if(val>max_write_latency)
 					max_write_latency = val;
 				if(val<min_write_latency)
@@ -259,9 +259,9 @@ static void show_clat_percentiles(unsigned int *io_u_plat, unsigned long nr,
 	int is_last, per_line, scale_down;
 	char fmt[32];
 	int cCounter=0;
-	int count_readLatency=0;
-	int count_writeLatency=0;
-
+	float count_readLatency=0.0;
+	float count_writeLatency=0.0;
+	int intCountSum = 0;
 	FILE *fp;
 
 	fp=fopen("output.csv","w+");
@@ -277,17 +277,67 @@ static void show_clat_percentiles(unsigned int *io_u_plat, unsigned long nr,
 
 	fprintf(fp,"\nRead-Latencies");
 	for(cCounter=0;cCounter<44;cCounter++){
-		count_readLatency +=countReadArr[cCounter];
-		fprintf(fp,",%d",countReadArr[cCounter]);
+		count_readLatency +=countReadArr[cCounter][0];
+		fprintf(fp,",%f",countReadArr[cCounter][0]);
 	}
+
+	fprintf(fp,"\n Perc-Read-Latencies");
+	for(cCounter=0;cCounter<44;cCounter++){
+		intCountSum+=countReadArr[cCounter][0];
+		countReadArr[cCounter][1] = ((intCountSum*100.00000)/count_readLatency);
+		fprintf(fp,",%f",countReadArr[cCounter][1]);
+	}
+
+
+	/**/
+
+	fprintf(fp,"\n");
 	fprintf(fp,"\nWrite-Latencies");
 	for(cCounter=0;cCounter<44;cCounter++){
-		count_writeLatency+=countWriteArr[cCounter];
-		fprintf(fp,",%d",countWriteArr[cCounter]);
+		count_writeLatency+=countWriteArr[cCounter][0];
+		fprintf(fp,",%f",countWriteArr[cCounter][0]);
 	}
-//	fprintf(fp,"\n");
-	fprintf(fp,"\n Min Write Latency, Max Write Latency, Avg Read Latency, Avg WriteLatency");
-	fprintf(fp,"\n%d, %d, %d, %d",min_write_latency,max_write_latency,(avg_read_latency/count_readLatency),(avg_write_latency/count_writeLatency));
+
+	intCountSum=0;
+
+	fprintf(fp,"\n Perc-Read-Latencies");
+	for(cCounter=0;cCounter<44;cCounter++){
+		intCountSum+=countWriteArr[cCounter][0];
+		countWriteArr[cCounter][1] = ((intCountSum*100.00000)/count_writeLatency);
+		fprintf(fp,",%f",countWriteArr[cCounter][1]);
+	}
+
+	fprintf(fp,"\n");
+	if(count_readLatency>0.0){
+		fprintf(fp,"\n Min Read Latency, Max Read Latency, Avg Read Latency, Total Read Iops");
+		fprintf(fp,"\n%d, %d, %.2f, %.2f",min_read_latency,max_read_latency,(sum_read_latency/count_readLatency),count_readLatency);
+	}
+	else{
+		fprintf(fp,"\n Min Read Latency, Max Read Latency, Avg Read Latency, Total Read Iops");
+		fprintf(fp,"\n0, 0, 0, 0");
+	}
+	if(count_writeLatency>0.0){
+		fprintf(fp,"\n\n Min Write Latency, Max Write Latency, Avg Write Latency, Total Write Iops");
+		fprintf(fp,"\n%d, %d, %.2f, %.2f",min_write_latency,max_write_latency,(sum_write_latency/count_writeLatency),count_writeLatency);
+	}
+	else{
+		fprintf(fp,"\n\n Min Write Latency, Max Write Latency, Avg Write Latency, Total Write Iops");
+		fprintf(fp,"\n0, 0, 0, 0");
+	}
+
+	fprintf(fp,"\n\n Iops Stability");
+	if(count_readLatency>0.0 && count_writeLatency>0.0){
+		fprintf(fp,"\n%.2f",((min_read_latency+min_write_latency)/((sum_read_latency/count_readLatency)+(sum_write_latency/count_writeLatency))));
+	}
+	else{
+		if(count_readLatency>0.0){
+			fprintf(fp,"\n%.2f",(min_read_latency/(sum_read_latency/count_readLatency)));
+		}
+		else if(count_writeLatency>0.0){
+			fprintf(fp,"\n%.2f",(min_write_latency/(sum_write_latency/count_writeLatency)));
+		}
+	}
+
 
 	fclose(fp);
 
@@ -686,7 +736,7 @@ static int calc_block_percentiles(int nr_block_infos, uint32_t *block_infos,
 
 	for (i = 0; i < len; i++) {
 		int idx = (plist[i].u.f * (nr_block_infos - nr_uninit) / 100)
-														+ nr_uninit;
+																						+ nr_uninit;
 		(*percentiles)[i] = BLOCK_INFO_TRIMS(block_infos[idx]);
 	}
 
@@ -2258,7 +2308,7 @@ uint32_t *io_u_block_info(struct thread_data *td, struct io_u *io_u)
 	/* Ignore io_u's which span multiple blocks--they will just get
 	 * inaccurate counts. */
 	int idx = (io_u->offset - io_u->file->file_offset)
-													/ td->o.bs[DDIR_TRIM];
+																					/ td->o.bs[DDIR_TRIM];
 	uint32_t *info = &td->ts.block_infos[idx];
 	assert(idx < td->ts.nr_block_infos);
 	return info;
