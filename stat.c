@@ -241,7 +241,10 @@ unsigned int calc_clat_percentiles(unsigned int *io_u_plat, unsigned long nr,
 /*
  * Find and display the p-th percentile of clat
  */
-static void show_clat_percentiles(unsigned int *io_u_plat, unsigned long nr,
+
+
+//struct thread_stat *ts
+static void show_clat_percentiles(const char *name, unsigned int *io_u_plat, unsigned long nr,
 		fio_fp64_t *plist, unsigned int precision,
 		struct buf_output *out)
 {
@@ -264,7 +267,13 @@ static void show_clat_percentiles(unsigned int *io_u_plat, unsigned long nr,
 	int intCountSum = 0;
 	FILE *fp;
 
-	fp=fopen("output.csv","w+");
+	char * resultName = NULL;
+	const char *type = ".csv";
+	asprintf(&resultName,"%s%s",name,type);
+
+
+
+	fp=fopen(resultName,"w+");
 	//	fprintf(fp,"Buckets");/*, Read-Latencies, Write-Latencies\n");*/
 
 	for(cCounter=0;cCounter<sizeof(arr)/sizeof(arr[0]);cCounter++){
@@ -555,7 +564,7 @@ static void show_ddir_status(struct group_run_stats *rs, struct thread_stat *ts,
 		display_lat(" lat", min, max, mean, dev, out);
 
 	if (ts->clat_percentiles) {
-		show_clat_percentiles(ts->io_u_plat[ddir],
+		show_clat_percentiles(ts->name,ts->io_u_plat[ddir],
 				ts->clat_stat[ddir].samples,
 				ts->percentile_list,
 				ts->percentile_precision, out);
