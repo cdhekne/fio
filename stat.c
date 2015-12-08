@@ -64,9 +64,7 @@ static unsigned int plat_val_to_idx(unsigned int val, enum fio_ddir ddir)
 	for(arr_iterator=0;arr_iterator<(sizeof(arr)/sizeof(arr[0]));arr_iterator++){
 		if(val<arr[arr_iterator]){
 			if(ddir==0){
-//				countReadArr[arr_iterator]+=1;
 				fIntel.countReadArr[arr_iterator]+=1;
-//				sum_read_latency+=val;
 				fIntel.sum_read_latency+=val;
 				if(val>fIntel.max_read_latency)
 					fIntel.max_read_latency = val;
@@ -255,7 +253,7 @@ static void show_clat_percentiles(const char *name, unsigned int *io_u_plat, uns
 		struct buf_output *out)
 {
 
-	char *arr[] = { "Buckets","0 to 10 uS", "10 to 25 uS", "25 to 50 uS", "50 to 65 uS", "65 to 75 uS", "75 to 90 uS",
+	const char *arr[] = { "Buckets","0 to 10 uS", "10 to 25 uS", "25 to 50 uS", "50 to 65 uS", "65 to 75 uS", "75 to 90 uS",
 			"90 to 100 uS", "100 to 120 uS", "120 to 150 uS", "150 to 180 uS", "180 to 200 uS",
 			"200 to 220 uS", "220 to 250 uS", "250 to 300 uS", "300 to 350 uS", "350 to 400 uS", "400 to 500 uS",
 			"500 to 750 uS", "0.75 to 1 mS", "1 to 1.2 mS", "1.2 to 1.5 mS", "1.5 to 2 mS", "2 to 2.2 mS",
@@ -283,7 +281,7 @@ static void show_clat_percentiles(const char *name, unsigned int *io_u_plat, uns
 	//	fprintf(fp,"Buckets");/*, Read-Latencies, Write-Latencies\n");*/
 
 	for(cCounter=0;cCounter<sizeof(arr)/sizeof(arr[0]);cCounter++){
-		char *pos = arr[cCounter];
+		const char *pos = arr[cCounter];
 		while(*pos){
 			fprintf(fp,"%c",*(pos++));
 		}
@@ -299,7 +297,6 @@ static void show_clat_percentiles(const char *name, unsigned int *io_u_plat, uns
 	fprintf(fp,"\n Perc-Read-Latencies");
 	for(cCounter=0;cCounter<44;cCounter++){
 		intCountSum+=fIntel.countReadArr[cCounter];
-//		countReadArr[cCounter][1] = ((intCountSum*100.00000)/count_readLatency);
 		fprintf(fp,",%f",((intCountSum*100.00000)/count_readLatency));
 	}
 
@@ -318,7 +315,6 @@ static void show_clat_percentiles(const char *name, unsigned int *io_u_plat, uns
 	fprintf(fp,"\n Perc-Read-Latencies");
 	for(cCounter=0;cCounter<44;cCounter++){
 		intCountSum+=fIntel.countWriteArr[cCounter];
-//		countWriteArr[cCounter][1] = ((intCountSum*100.00000)/count_writeLatency);
 		fprintf(fp,",%f",((intCountSum*100.00000)/count_writeLatency));
 	}
 
