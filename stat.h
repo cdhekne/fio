@@ -15,6 +15,25 @@ struct group_run_stats {
 	uint32_t unified_rw_rep;
 } __attribute__((packed));
 
+struct fio_intel{
+	unsigned long int countReadArr[44];
+	unsigned long int countWriteArr[44];
+	unsigned long int read_write_flag;
+
+	unsigned long int max_read_latency;
+	unsigned long int min_read_latency;
+	unsigned long int sum_read_latency;
+
+	unsigned long int max_write_latency;
+	unsigned long int min_write_latency;
+	unsigned long int sum_write_latency;
+};
+
+/*struct fio_intel init_fio_intel = {
+
+		{0}, {0}, 0, 0, ULONG_MAX, 0, 0, ULONG_MAX, 0
+};*/
+
 /*
  * How many depth levels to log
  */

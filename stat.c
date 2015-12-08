@@ -20,7 +20,15 @@
 #include "lib/output_buffer.h"
 
 struct fio_mutex *stat_mutex;
-unsigned long int countReadArr[44] = {0};
+
+struct fio_intel fIntel;
+
+
+unsigned long int min_read_latency = ULONG_MAX;
+unsigned long int min_write_latency = ULONG_MAX;
+
+
+/*unsigned long int countReadArr[44] = {0};
 unsigned long int countWriteArr[44] = {0};
 unsigned long int read_write_flag=0;
 
@@ -30,7 +38,7 @@ unsigned long int  sum_read_latency =0;
 
 unsigned long int max_write_latency = 0;
 unsigned long int min_write_latency = LONG_MAX;
-unsigned long int sum_write_latency =0;
+unsigned long int sum_write_latency =0;*/
 
 void update_rusage_stat(struct thread_data *td)
 {
@@ -69,39 +77,50 @@ static unsigned int plat_val_to_idx(unsigned int val, enum fio_ddir ddir)
 	for(arr_iterator=0;arr_iterator<(sizeof(arr)/sizeof(arr[0]));arr_iterator++){
 		if(val<arr[arr_iterator]){
 			if(ddir==0){
-				countReadArr[arr_iterator]+=1;
-				sum_read_latency+=val;
-				if(val>max_read_latency)
-					max_read_latency = val;
-				if(val<min_read_latency)
+//				countReadArr[arr_iterator]+=1;
+				fIntel.countReadArr[arr_iterator]+=1;
+//				sum_read_latency+=val;
+				fIntel.sum_read_latency+=val;
+				if(val>fIntel.max_read_latency)
+					fIntel.max_read_latency = val;
+				if(val<min_read_latency){
+					fIntel.min_read_latency=val;
 					min_read_latency=val;
+				}
 			}
 			else{
-				countWriteArr[arr_iterator]+=1;
-				sum_write_latency+=val;
-				if(val>max_write_latency)
-					max_write_latency = val;
-				if(val<min_write_latency)
+				fIntel.countWriteArr[arr_iterator]+=1;
+				fIntel.sum_write_latency+=val;
+				if(val>fIntel.max_write_latency)
+					fIntel.max_write_latency = val;
+				if(val<min_write_latency){
+					fIntel.min_write_latency=val;
 					min_write_latency=val;
+				}
 			}
 			break;
 		}
 		if(val>=10000000){
 			if(ddir==0){
-				countReadArr[43]+=1;
-				sum_read_latency+=val;
-				if(val>max_read_latency)
-					max_read_latency = val;
-				if(val<min_read_latency)
+				fIntel.countReadArr[43]+=1;
+				fIntel.sum_read_latency+=val;
+				if(val>fIntel.max_read_latency)
+					fIntel.max_read_latency = val;
+				if(val<min_read_latency){
+					fIntel.min_read_latency=val;
 					min_read_latency=val;
+
+				}
 			}
 			else{
-				countWriteArr[43]+=1;
-				sum_write_latency+=val;
-				if(val>max_write_latency)
-					max_write_latency = val;
-				if(val<min_write_latency)
+				fIntel.countWriteArr[43]+=1;
+				fIntel.sum_write_latency+=val;
+				if(val>fIntel.max_write_latency)
+					fIntel.max_write_latency = val;
+				if(val<min_write_latency){
+					fIntel.min_write_latency=val;
 					min_write_latency=val;
+				}
 			}
 			break;
 		}
@@ -286,13 +305,13 @@ static void show_clat_percentiles(const char *name, unsigned int *io_u_plat, uns
 
 	fprintf(fp,"\nRead-Latencies");
 	for(cCounter=0;cCounter<44;cCounter++){
-		count_readLatency +=countReadArr[cCounter];
-		fprintf(fp,",%lu",countReadArr[cCounter]);
+		count_readLatency +=fIntel.countReadArr[cCounter];
+		fprintf(fp,",%lu",fIntel.countReadArr[cCounter]);
 	}
 
 	fprintf(fp,"\n Perc-Read-Latencies");
 	for(cCounter=0;cCounter<44;cCounter++){
-		intCountSum+=countReadArr[cCounter];
+		intCountSum+=fIntel.countReadArr[cCounter];
 //		countReadArr[cCounter][1] = ((intCountSum*100.00000)/count_readLatency);
 		fprintf(fp,",%f",((intCountSum*100.00000)/count_readLatency));
 	}
@@ -303,15 +322,15 @@ static void show_clat_percentiles(const char *name, unsigned int *io_u_plat, uns
 	fprintf(fp,"\n");
 	fprintf(fp,"\nWrite-Latencies");
 	for(cCounter=0;cCounter<44;cCounter++){
-		count_writeLatency+=countWriteArr[cCounter];
-		fprintf(fp,",%lu",countWriteArr[cCounter]);
+		count_writeLatency+=fIntel.countWriteArr[cCounter];
+		fprintf(fp,",%lu",fIntel.countWriteArr[cCounter]);
 	}
 
 	intCountSum=0;
 
 	fprintf(fp,"\n Perc-Read-Latencies");
 	for(cCounter=0;cCounter<44;cCounter++){
-		intCountSum+=countWriteArr[cCounter];
+		intCountSum+=fIntel.countWriteArr[cCounter];
 //		countWriteArr[cCounter][1] = ((intCountSum*100.00000)/count_writeLatency);
 		fprintf(fp,",%f",((intCountSum*100.00000)/count_writeLatency));
 	}
@@ -319,7 +338,7 @@ static void show_clat_percentiles(const char *name, unsigned int *io_u_plat, uns
 	fprintf(fp,"\n");
 	if(count_readLatency>0.0){
 		fprintf(fp,"\n Min Read Latency, Max Read Latency, Avg Read Latency, Total Read Iops");
-		fprintf(fp,"\n%lu, %lu, %.2f, %.2f",min_read_latency,max_read_latency,(sum_read_latency/count_readLatency),count_readLatency);
+		fprintf(fp,"\n%lu, %lu, %.2f, %.2f",fIntel.min_read_latency,fIntel.max_read_latency,(fIntel.sum_read_latency/count_readLatency),count_readLatency);
 	}
 	else{
 		fprintf(fp,"\n Min Read Latency, Max Read Latency, Avg Read Latency, Total Read Iops");
@@ -327,7 +346,7 @@ static void show_clat_percentiles(const char *name, unsigned int *io_u_plat, uns
 	}
 	if(count_writeLatency>0.0){
 		fprintf(fp,"\n\n Min Write Latency, Max Write Latency, Avg Write Latency, Total Write Iops");
-		fprintf(fp,"\n%lu, %lu, %.2f, %.2f",min_write_latency,max_write_latency,(sum_write_latency/count_writeLatency),count_writeLatency);
+		fprintf(fp,"\n%lu, %lu, %.2f, %.2f",fIntel.min_write_latency,fIntel.max_write_latency,(fIntel.sum_write_latency/count_writeLatency),count_writeLatency);
 	}
 	else{
 		fprintf(fp,"\n\n Min Write Latency, Max Write Latency, Avg Write Latency, Total Write Iops");
@@ -336,14 +355,14 @@ static void show_clat_percentiles(const char *name, unsigned int *io_u_plat, uns
 
 	fprintf(fp,"\n\n Iops Stability");
 	if(count_readLatency>0.0 && count_writeLatency>0.0){
-		fprintf(fp,"\n%.2f",((min_read_latency+min_write_latency)/((sum_read_latency/count_readLatency)+(sum_write_latency/count_writeLatency))));
+		fprintf(fp,"\n%.2f",((fIntel.min_read_latency+fIntel.min_write_latency)/((fIntel.sum_read_latency/count_readLatency)+(fIntel.sum_write_latency/count_writeLatency))));
 	}
 	else{
 		if(count_readLatency>0.0){
-			fprintf(fp,"\n%.2f",(min_read_latency/(sum_read_latency/count_readLatency)));
+			fprintf(fp,"\n%.2f",(fIntel.min_read_latency/(fIntel.sum_read_latency/count_readLatency)));
 		}
 		else if(count_writeLatency>0.0){
-			fprintf(fp,"\n%.2f",(min_write_latency/(sum_write_latency/count_writeLatency)));
+			fprintf(fp,"\n%.2f",(fIntel.min_write_latency/(fIntel.sum_write_latency/count_writeLatency)));
 		}
 	}
 
