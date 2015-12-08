@@ -27,19 +27,6 @@ struct fio_intel fIntel;
 unsigned long int min_read_latency = ULONG_MAX;
 unsigned long int min_write_latency = ULONG_MAX;
 
-
-/*unsigned long int countReadArr[44] = {0};
-unsigned long int countWriteArr[44] = {0};
-unsigned long int read_write_flag=0;
-
-int max_read_latency = 0;
-unsigned long int min_read_latency = ULONG_MAX;
-unsigned long int  sum_read_latency =0;
-
-unsigned long int max_write_latency = 0;
-unsigned long int min_write_latency = LONG_MAX;
-unsigned long int sum_write_latency =0;*/
-
 void update_rusage_stat(struct thread_data *td)
 {
 	struct thread_stat *ts = &td->ts;

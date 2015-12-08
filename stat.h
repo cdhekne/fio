@@ -29,10 +29,6 @@ struct fio_intel{
 	unsigned long int sum_write_latency;
 };
 
-/*struct fio_intel init_fio_intel = {
-
-		{0}, {0}, 0, 0, ULONG_MAX, 0, 0, ULONG_MAX, 0
-};*/
 
 /*
  * How many depth levels to log
