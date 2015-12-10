@@ -33,10 +33,14 @@ unsigned long int max_write_latency = 0;
 unsigned long int min_write_latency = ULONG_MAX;
 double sum_write_latency =0;
 unsigned long int writeCounter = 0;
-
+unsigned long int trimCounter = 0;
+unsigned long int invalidCounter = 0;
 unsigned long int globalCounter = 0;
-
-pthread_mutex_t count_mutex;
+unsigned long int syncCounter = 0;
+unsigned long int nullCounter = 0;
+//unsigned long int gCountBuffer[10000000] = {0};
+unsigned long int myCounter = 0;
+pthread_mutex_t count_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
 void update_rusage_stat(struct thread_data *td)
@@ -277,7 +281,7 @@ static void show_clat_percentiles(const char *name, unsigned int *io_u_plat, uns
 	char fmt[32];
 	int cCounter=0;
 	unsigned long int intCountSum = 0;
-	FILE *fp;
+	FILE *fp;//*fp1;
 	float read_perc =0.0;
 	float write_perc =0.0;
 	char * resultName = NULL;
@@ -336,96 +340,106 @@ static void show_clat_percentiles(const char *name, unsigned int *io_u_plat, uns
 	}
 
 	fp=fopen(resultName,"w+");
-		//	fprintf(fp,"Buckets");/*, Read-Latencies, Write-Latencies\n");*/
+	//	fprintf(fp,"Buckets");/*, Read-Latencies, Write-Latencies\n");*/
 
-		for(cCounter=0;cCounter<sizeof(arr)/sizeof(arr[0]);cCounter++){
-			char *pos = arr[cCounter];
-			while(*pos){
-				fprintf(fp,"%c",*(pos++));
-			}
-			fprintf(fp,",");
+	for(cCounter=0;cCounter<sizeof(arr)/sizeof(arr[0]);cCounter++){
+		char *pos = arr[cCounter];
+		while(*pos){
+			fprintf(fp,"%c",*(pos++));
 		}
+		fprintf(fp,",");
+	}
 
-		fprintf(fp,"\nRead-Latencies");
+	fprintf(fp,"\nRead-Latencies");
+	for(cCounter=0;cCounter<44;cCounter++){
+		fprintf(fp,",%lu",countReadArr[cCounter]);
+	}
+
+	fprintf(fp,"\n Perc-Read-Latencies");
+	if(readCounter>0){
 		for(cCounter=0;cCounter<44;cCounter++){
-			fprintf(fp,",%lu",countReadArr[cCounter]);
+			intCountSum+=countReadArr[cCounter];
+			read_perc = (float)intCountSum/readCounter*100.0000000;
+			fprintf(fp,",%f",read_perc);
 		}
+	}
+	else{
+		for(cCounter=0;cCounter<44;cCounter++)
+			fprintf(fp,",0");
+	}
 
-		fprintf(fp,"\n Perc-Read-Latencies");
+
+	intCountSum=0;
+	/**/
+
+	fprintf(fp,"\n");
+	fprintf(fp,"\nWrite-Latencies");
+	for(cCounter=0;cCounter<44;cCounter++){
+		fprintf(fp,",%lu",countWriteArr[cCounter]);
+	}
+
+	fprintf(fp,"\n Perc-Write-Latencies");
+	if(writeCounter>0){
+		for(cCounter=0;cCounter<44;cCounter++){
+			intCountSum+=countWriteArr[cCounter];
+			write_perc = (float)intCountSum/writeCounter*100.0000000;
+			fprintf(fp,",%f",write_perc);
+		}
+	}
+	else{
+		for(cCounter=0;cCounter<44;cCounter++)
+			fprintf(fp,",0");
+	}
+
+	fprintf(fp,"\n");
+	if(readCounter>0){
+		fprintf(fp,"\n Min Read Latency, Max Read Latency, Avg Read Latency, Total Read Iops");
+		fprintf(fp,"\n%lu, %lu, %.2f, %lu",min_read_latency,max_read_latency,(float)(sum_read_latency/readCounter),readCounter);
+	}
+	else{
+		fprintf(fp,"\n Min Read Latency, Max Read Latency, Avg Read Latency, Total Read Iops");
+		fprintf(fp,"\n0, 0, 0, 0");
+	}
+	if(writeCounter>0){
+		fprintf(fp,"\n\n Min Write Latency, Max Write Latency, Avg Write Latency, Total Write Iops");
+		fprintf(fp,"\n%lu, %lu, %.2f, %lu",min_write_latency,max_write_latency,(float)(sum_write_latency/writeCounter),writeCounter);
+	}
+	else{
+		fprintf(fp,"\n\n Min Write Latency, Max Write Latency, Avg Write Latency, Total Write Iops");
+		fprintf(fp,"\n0, 0, 0, 0");
+	}
+
+	fprintf(fp,"\n\n Iops Stability");
+	if(readCounter>0 && writeCounter>0){
+		fprintf(fp,"\n%.2f",((float)((float)(min_read_latency+min_write_latency)/((float)(sum_read_latency/readCounter)+((float)sum_write_latency/writeCounter)))));
+	}
+	else{
 		if(readCounter>0){
-			for(cCounter=0;cCounter<44;cCounter++){
-				intCountSum+=countReadArr[cCounter];
-				read_perc = (float)intCountSum/readCounter*100.0000000;
-				fprintf(fp,",%f",read_perc);
-			}
+			fprintf(fp,"\n%.2f",(float)(min_read_latency/((float)sum_read_latency/readCounter)));
 		}
-		else{
-			for(cCounter=0;cCounter<44;cCounter++)
-				fprintf(fp,",0");
+		else if(writeCounter>0){
+			fprintf(fp,"\n%.2f",(float)(min_write_latency/((float)sum_write_latency/writeCounter)));
 		}
+	}
 
 
-		intCountSum=0;
-		/**/
+	fprintf(fp,"\n");
+	fprintf(fp,"\nTotal Latency Count, Trim Counter, Sync Counter, Invalid Counter, Null Counter");
 
-		fprintf(fp,"\n");
-		fprintf(fp,"\nWrite-Latencies");
-			for(cCounter=0;cCounter<44;cCounter++){
-				fprintf(fp,",%lu",countWriteArr[cCounter]);
-			}
-
-			fprintf(fp,"\n Perc-Write-Latencies");
-			if(writeCounter>0){
-				for(cCounter=0;cCounter<44;cCounter++){
-					intCountSum+=countWriteArr[cCounter];
-					write_perc = (float)intCountSum/writeCounter*100.0000000;
-					fprintf(fp,",%f",write_perc);
-				}
-			}
-			else{
-				for(cCounter=0;cCounter<44;cCounter++)
-					fprintf(fp,",0");
-			}
-
-		fprintf(fp,"\n");
-		if(readCounter>0){
-			fprintf(fp,"\n Min Read Latency, Max Read Latency, Avg Read Latency, Total Read Iops");
-			fprintf(fp,"\n%lu, %lu, %.2f, %lu",min_read_latency,max_read_latency,(float)(sum_read_latency/readCounter),readCounter);
-		}
-		else{
-			fprintf(fp,"\n Min Read Latency, Max Read Latency, Avg Read Latency, Total Read Iops");
-			fprintf(fp,"\n0, 0, 0, 0");
-		}
-		if(writeCounter>0){
-			fprintf(fp,"\n\n Min Write Latency, Max Write Latency, Avg Write Latency, Total Write Iops");
-			fprintf(fp,"\n%lu, %lu, %.2f, %lu",min_write_latency,max_write_latency,(float)(sum_write_latency/writeCounter),writeCounter);
-		}
-		else{
-			fprintf(fp,"\n\n Min Write Latency, Max Write Latency, Avg Write Latency, Total Write Iops");
-			fprintf(fp,"\n0, 0, 0, 0");
-		}
-
-		fprintf(fp,"\n\n Iops Stability");
-		if(readCounter>0 && writeCounter>0){
-			fprintf(fp,"\n%.2f",((float)((float)(min_read_latency+min_write_latency)/((float)(sum_read_latency/readCounter)+((float)sum_write_latency/writeCounter)))));
-		}
-		else{
-			if(readCounter>0){
-				fprintf(fp,"\n%.2f",(float)(min_read_latency/((float)sum_read_latency/readCounter)));
-			}
-			else if(writeCounter>0){
-				fprintf(fp,"\n%.2f",(float)(min_write_latency/((float)sum_write_latency/writeCounter)));
-			}
-		}
-
-		fprintf(fp,"\n");
-		fprintf(fp,"\nTotal Latency Count");
-
-		fprintf(fp,"\n%lu",globalCounter);
+	fprintf(fp,"\n%lu, %lu, %lu, %lu, %lu",globalCounter,trimCounter,syncCounter,invalidCounter,nullCounter);
 
 
-		fclose(fp);
+	fclose(fp);
 
+
+	/*fp1=fopen("fp1.csv","w+");
+	unsigned long int i;
+	for(i=0;i<sizeof(gCountBuffer)/sizeof(gCountBuffer[0]);i++){
+		if(gCountBuffer[i]>0)
+			fprintf(fp1,"%lu \n", gCountBuffer[i]);
+	}
+	fclose(fp1);
+*/
 	out:
 	if (ovals)
 		free(ovals);
@@ -774,7 +788,7 @@ static int calc_block_percentiles(int nr_block_infos, uint32_t *block_infos,
 
 	for (i = 0; i < len; i++) {
 		int idx = (plist[i].u.f * (nr_block_infos - nr_uninit) / 100)
-																										+ nr_uninit;
+																												+ nr_uninit;
 		(*percentiles)[i] = BLOCK_INFO_TRIMS(block_infos[idx]);
 	}
 
@@ -2179,57 +2193,70 @@ static void add_clat_percentile_sample(struct thread_stat *ts,
 static void myIntelFunc(unsigned long val, enum fio_ddir ddir){
 
 	int arr[] = {10, 25, 50, 65, 75, 90, 100, 120, 150, 180, 200, 220, 250, 300, 350, 400, 500, 750, 1000, 1200,
-				1500, 2000, 2200, 2700, 3300, 3900, 4700, 5600, 6800, 8200, 10000, 12000, 15000, 18000, 20000,
-				25000, 30000, 50000, 100000, 500000, 1000000, 4000000, 10000000, 12000000};
-		int arr_iterator;
-		pthread_mutex_lock(&count_mutex);
-
-		globalCounter++;
-		for(arr_iterator=0;arr_iterator<(sizeof(arr)/sizeof(arr[0]));arr_iterator++){
-			if(val<arr[arr_iterator]){
-				if(ddir==DDIR_READ){
-					readCounter++;
-					countReadArr[arr_iterator]++;
-					sum_read_latency+=val;
-					if(val>=max_read_latency)
-						max_read_latency = val;
-					if(val<=min_read_latency)
-						min_read_latency=val;
-				}
-				else if (ddir==DDIR_WRITE){
-					writeCounter++;
-					countWriteArr[arr_iterator]++;
-					sum_write_latency+=val;
-					if(val>=max_write_latency)
-						max_write_latency = val;
-					if(val<=min_write_latency)
-						min_write_latency=val;
-				}
-				break;
+			1500, 2000, 2200, 2700, 3300, 3900, 4700, 5600, 6800, 8200, 10000, 12000, 15000, 18000, 20000,
+			25000, 30000, 50000, 100000, 500000, 1000000, 4000000, 10000000, 12000000};
+	int arr_iterator;
+	pthread_mutex_lock(&count_mutex);
+	globalCounter++;
+//	gCountBuffer[myCounter++]=globalCounter;
+	for(arr_iterator=0;arr_iterator<(sizeof(arr)/sizeof(arr[0]));arr_iterator++){
+		if(val<arr[arr_iterator]){
+			if(ddir==DDIR_READ){
+				readCounter++;
+				countReadArr[arr_iterator]++;
+				sum_read_latency+=val;
+				if(val>=max_read_latency)
+					max_read_latency = val;
+				if(val<=min_read_latency)
+					min_read_latency=val;
 			}
-			else if(val>=arr[42]){
-				if(ddir==DDIR_READ){
-					readCounter++;
-					countReadArr[43]++;
-					sum_read_latency+=val;
-					if(val>=max_read_latency)
-						max_read_latency = val;
-					if(val<=min_read_latency)
-						min_read_latency=val;
-				}
-				else if(ddir==DDIR_WRITE){
-					writeCounter++;
-					countWriteArr[43]++;
-					sum_write_latency+=val;
-					if(val>=max_write_latency)
-						max_write_latency = val;
-					if(val<=min_write_latency)
-						min_write_latency=val;
-				}
-				break;
+			else if (ddir==DDIR_WRITE){
+				writeCounter++;
+				countWriteArr[arr_iterator]++;
+				sum_write_latency+=val;
+				if(val>=max_write_latency)
+					max_write_latency = val;
+				if(val<=min_write_latency)
+					min_write_latency=val;
 			}
+			break;
 		}
-		pthread_mutex_unlock(&count_mutex);
+		else if(val>=arr[42]){
+			if(ddir==DDIR_READ){
+				readCounter++;
+				countReadArr[43]++;
+				sum_read_latency+=val;
+				if(val>=max_read_latency)
+					max_read_latency = val;
+				if(val<=min_read_latency)
+					min_read_latency=val;
+			}
+			else if(ddir==DDIR_WRITE){
+				writeCounter++;
+				countWriteArr[43]++;
+				sum_write_latency+=val;
+				if(val>=max_write_latency)
+					max_write_latency = val;
+				if(val<=min_write_latency)
+					min_write_latency=val;
+			}
+			break;
+		}
+		else if (ddir==DDIR_TRIM){
+			trimCounter++;
+		}
+		else if (ddir==3){
+			syncCounter++;
+		}
+		else if (ddir==-1){
+			invalidCounter++;
+		}
+		else if (val==NULL){
+			nullCounter++;
+		}
+
+	}
+	pthread_mutex_unlock(&count_mutex);
 }
 
 void add_clat_sample(struct thread_data *td, enum fio_ddir ddir,
@@ -2409,7 +2436,7 @@ uint32_t *io_u_block_info(struct thread_data *td, struct io_u *io_u)
 	/* Ignore io_u's which span multiple blocks--they will just get
 	 * inaccurate counts. */
 	int idx = (io_u->offset - io_u->file->file_offset)
-																									/ td->o.bs[DDIR_TRIM];
+																											/ td->o.bs[DDIR_TRIM];
 	uint32_t *info = &td->ts.block_infos[idx];
 	assert(idx < td->ts.nr_block_infos);
 	return info;
