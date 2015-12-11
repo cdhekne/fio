@@ -2224,10 +2224,10 @@ static void myIntelFunc(unsigned long val, enum fio_ddir ddir){
 			}
 			break;
 		}
-		else if(val>=arr[42]){
+		else if(val>=arr[(sizeof(arr)/sizeof(arr[0]))-2]){
 			if(ddir==DDIR_READ){
 				fioIntel.readCounter++;
-				fioIntel.countReadArr[43]++;
+				fioIntel.countReadArr[(sizeof(arr)/sizeof(arr[0]))-1]++;
 				fioIntel.sum_read_latency+=val;
 				if(val>=fioIntel.max_read_latency)
 					fioIntel.max_read_latency = val;
@@ -2236,7 +2236,7 @@ static void myIntelFunc(unsigned long val, enum fio_ddir ddir){
 			}
 			else if(ddir==DDIR_WRITE){
 				fioIntel.writeCounter++;
-				fioIntel.countWriteArr[43]++;
+				fioIntel.countWriteArr[(sizeof(arr)/sizeof(arr[0]))-1]++;
 				fioIntel.sum_write_latency+=val;
 				if(val>=fioIntel.max_write_latency)
 					fioIntel.max_write_latency = val;
