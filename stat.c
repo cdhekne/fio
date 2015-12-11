@@ -21,26 +21,7 @@
 
 struct fio_mutex *stat_mutex;
 struct fio_intel fioIntel;
-/*unsigned long int fioIntel.countReadArr[44] = {0};
-unsigned long int fioIntel.countWriteArr[44] = {0};
-int read_write_flag=0;
 
-unsigned long int max_read_latency = 0;
-unsigned long int min_read_latency = ULONG_MAX;
-double sum_read_latency =0;
-unsigned long int readCounter = 0;
-
-unsigned long int max_write_latency = 0;
-unsigned long int min_write_latency = ULONG_MAX;
-double sum_write_latency =0;
-unsigned long int writeCounter = 0;
-unsigned long int trimCounter = 0;
-unsigned long int invalidCounter = 0;
-unsigned long int globalCounter = 0;
-unsigned long int syncCounter = 0;
-unsigned long int nullCounter = 0;
-//unsigned long int gCountBuffer[10000000] = {0};
-unsigned long int myCounter = 0;*/
 pthread_mutex_t count_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 unsigned long int min_read_latency = ULONG_MAX;
@@ -77,55 +58,6 @@ static unsigned int plat_val_to_idx(unsigned int val, enum fio_ddir ddir)
 {
 	unsigned int msb, error_bits, base, offset, idx;
 
-	/*int arr[] = {10, 25, 50, 65, 75, 90, 100, 120, 150, 180, 200, 220, 250, 300, 350, 400, 500, 750, 1000, 1200,
-			1500, 2000, 2200, 2700, 3300, 3900, 4700, 5600, 6800, 8200, 10000, 12000, 15000, 18000, 20000,
-			25000, 30000, 50000, 100000, 500000, 1000000, 4000000, 10000000, 12000000};
-	int arr_iterator;
-//	globalCounter+=1;
-	for(arr_iterator=0;arr_iterator<(sizeof(arr)/sizeof(arr[0]));arr_iterator++){
-		if(val<arr[arr_iterator]){
-			if(ddir==0){
-				readCounter+=1;
-				fioIntel.countReadArr[arr_iterator]+=1;
-				sum_read_latency+=(unsigned long int)val;
-				if(val>=max_read_latency)
-					max_read_latency = val;
-				if(val<=min_read_latency)
-					min_read_latency=val;
-			}
-			else{
-				writeCounter+=1;
-				fioIntel.countWriteArr[arr_iterator]+=1;
-				sum_write_latency+=(unsigned long int)val;
-				if(val>=max_write_latency)
-					max_write_latency = val;
-				if(val<=min_write_latency)
-					min_write_latency=val;
-			}
-			break;
-		}
-		else if(val>=arr[42]){
-			if(ddir==0){
-				readCounter+=1;
-				fioIntel.countReadArr[43]+=1;
-				sum_read_latency+=(unsigned long int)val;
-				if(val>=max_read_latency)
-					max_read_latency = val;
-				if(val<=min_read_latency)
-					min_read_latency=val;
-			}
-			else{
-				writeCounter+=1;
-				fioIntel.countWriteArr[43]+=1;
-				sum_write_latency+=(unsigned long int)val;
-				if(val>=max_write_latency)
-					max_write_latency = val;
-				if(val<=min_write_latency)
-					min_write_latency=val;
-			}
-			break;
-		}
-	}*/
 	/* Find MSB starting from bit 0 */
 	if (val == 0)
 		msb = 0;
@@ -231,7 +163,6 @@ unsigned int calc_clat_percentiles(unsigned int *io_u_plat, unsigned long nr,
 	 * Calculate bucket values, note down max and min values
 	 */
 	is_last = 0;
-	int a=0;
 	for (i = 0; i < FIO_IO_U_PLAT_NR && !is_last; i++) {
 		sum += io_u_plat[i];
 		while (sum >= (plist[j].u.f / 100.0 * nr)) {
@@ -344,7 +275,6 @@ static void show_clat_percentiles(const char *name, unsigned int *io_u_plat, uns
 	}
 
 	fp=fopen(resultName,"w+");
-	//	fprintf(fp,"Buckets");/*, Read-Latencies, Write-Latencies\n");*/
 
 	for(cCounter=0;cCounter<sizeof(arr)/sizeof(arr[0]);cCounter++){
 		char *pos = arr[cCounter];
@@ -426,24 +356,12 @@ static void show_clat_percentiles(const char *name, unsigned int *io_u_plat, uns
 		}
 	}
 
-
 	fprintf(fp,"\n");
 	fprintf(fp,"\nTotal Latency Count");
 
 	fprintf(fp,"\n%lu",fioIntel.globalCounter);
-
-
 	fclose(fp);
 
-
-	/*fp1=fopen("fp1.csv","w+");
-	unsigned long int i;
-	for(i=0;i<sizeof(gCountBuffer)/sizeof(gCountBuffer[0]);i++){
-		if(gCountBuffer[i]>0)
-			fprintf(fp1,"%lu \n", gCountBuffer[i]);
-	}
-	fclose(fp1);
-*/
 	out:
 	if (ovals)
 		free(ovals);
