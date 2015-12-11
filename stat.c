@@ -20,8 +20,9 @@
 #include "lib/output_buffer.h"
 
 struct fio_mutex *stat_mutex;
-unsigned long int countReadArr[44] = {0};
-unsigned long int countWriteArr[44] = {0};
+struct fio_intel fioIntel;
+/*unsigned long int fioIntel.countReadArr[44] = {0};
+unsigned long int fioIntel.countWriteArr[44] = {0};
 int read_write_flag=0;
 
 unsigned long int max_read_latency = 0;
@@ -39,8 +40,11 @@ unsigned long int globalCounter = 0;
 unsigned long int syncCounter = 0;
 unsigned long int nullCounter = 0;
 //unsigned long int gCountBuffer[10000000] = {0};
-unsigned long int myCounter = 0;
+unsigned long int myCounter = 0;*/
 pthread_mutex_t count_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+unsigned long int min_read_latency = ULONG_MAX;
+unsigned long int min_write_latency= ULONG_MAX;
 
 
 void update_rusage_stat(struct thread_data *td)
@@ -82,7 +86,7 @@ static unsigned int plat_val_to_idx(unsigned int val, enum fio_ddir ddir)
 		if(val<arr[arr_iterator]){
 			if(ddir==0){
 				readCounter+=1;
-				countReadArr[arr_iterator]+=1;
+				fioIntel.countReadArr[arr_iterator]+=1;
 				sum_read_latency+=(unsigned long int)val;
 				if(val>=max_read_latency)
 					max_read_latency = val;
@@ -91,7 +95,7 @@ static unsigned int plat_val_to_idx(unsigned int val, enum fio_ddir ddir)
 			}
 			else{
 				writeCounter+=1;
-				countWriteArr[arr_iterator]+=1;
+				fioIntel.countWriteArr[arr_iterator]+=1;
 				sum_write_latency+=(unsigned long int)val;
 				if(val>=max_write_latency)
 					max_write_latency = val;
@@ -103,7 +107,7 @@ static unsigned int plat_val_to_idx(unsigned int val, enum fio_ddir ddir)
 		else if(val>=arr[42]){
 			if(ddir==0){
 				readCounter+=1;
-				countReadArr[43]+=1;
+				fioIntel.countReadArr[43]+=1;
 				sum_read_latency+=(unsigned long int)val;
 				if(val>=max_read_latency)
 					max_read_latency = val;
@@ -112,7 +116,7 @@ static unsigned int plat_val_to_idx(unsigned int val, enum fio_ddir ddir)
 			}
 			else{
 				writeCounter+=1;
-				countWriteArr[43]+=1;
+				fioIntel.countWriteArr[43]+=1;
 				sum_write_latency+=(unsigned long int)val;
 				if(val>=max_write_latency)
 					max_write_latency = val;
@@ -352,14 +356,14 @@ static void show_clat_percentiles(const char *name, unsigned int *io_u_plat, uns
 
 	fprintf(fp,"\nRead-Latencies");
 	for(cCounter=0;cCounter<44;cCounter++){
-		fprintf(fp,",%lu",countReadArr[cCounter]);
+		fprintf(fp,",%lu",fioIntel.countReadArr[cCounter]);
 	}
 
 	fprintf(fp,"\n Perc-Read-Latencies");
-	if(readCounter>0){
+	if(fioIntel.readCounter>0){
 		for(cCounter=0;cCounter<44;cCounter++){
-			intCountSum+=countReadArr[cCounter];
-			read_perc = (float)intCountSum/readCounter*100.0000000;
+			intCountSum+=fioIntel.countReadArr[cCounter];
+			read_perc = (float)intCountSum/fioIntel.readCounter*100.0000000;
 			fprintf(fp,",%f",read_perc);
 		}
 	}
@@ -375,14 +379,14 @@ static void show_clat_percentiles(const char *name, unsigned int *io_u_plat, uns
 	fprintf(fp,"\n");
 	fprintf(fp,"\nWrite-Latencies");
 	for(cCounter=0;cCounter<44;cCounter++){
-		fprintf(fp,",%lu",countWriteArr[cCounter]);
+		fprintf(fp,",%lu",fioIntel.countWriteArr[cCounter]);
 	}
 
 	fprintf(fp,"\n Perc-Write-Latencies");
-	if(writeCounter>0){
+	if(fioIntel.writeCounter>0){
 		for(cCounter=0;cCounter<44;cCounter++){
-			intCountSum+=countWriteArr[cCounter];
-			write_perc = (float)intCountSum/writeCounter*100.0000000;
+			intCountSum+=fioIntel.countWriteArr[cCounter];
+			write_perc = (float)intCountSum/fioIntel.writeCounter*100.0000000;
 			fprintf(fp,",%f",write_perc);
 		}
 	}
@@ -392,17 +396,17 @@ static void show_clat_percentiles(const char *name, unsigned int *io_u_plat, uns
 	}
 
 	fprintf(fp,"\n");
-	if(readCounter>0){
+	if(fioIntel.readCounter>0){
 		fprintf(fp,"\n Min Read Latency, Max Read Latency, Avg Read Latency, Total Read Iops");
-		fprintf(fp,"\n%lu, %lu, %.2f, %lu",min_read_latency,max_read_latency,(float)(sum_read_latency/readCounter),readCounter);
+		fprintf(fp,"\n%lu, %lu, %.2f, %lu",min_read_latency,fioIntel.max_read_latency,(float)(fioIntel.sum_read_latency/fioIntel.readCounter),fioIntel.readCounter);
 	}
 	else{
 		fprintf(fp,"\n Min Read Latency, Max Read Latency, Avg Read Latency, Total Read Iops");
 		fprintf(fp,"\n0, 0, 0, 0");
 	}
-	if(writeCounter>0){
+	if(fioIntel.writeCounter>0){
 		fprintf(fp,"\n\n Min Write Latency, Max Write Latency, Avg Write Latency, Total Write Iops");
-		fprintf(fp,"\n%lu, %lu, %.2f, %lu",min_write_latency,max_write_latency,(float)(sum_write_latency/writeCounter),writeCounter);
+		fprintf(fp,"\n%lu, %lu, %.2f, %lu",min_write_latency,fioIntel.max_write_latency,(float)(fioIntel.sum_write_latency/fioIntel.writeCounter),fioIntel.writeCounter);
 	}
 	else{
 		fprintf(fp,"\n\n Min Write Latency, Max Write Latency, Avg Write Latency, Total Write Iops");
@@ -410,23 +414,23 @@ static void show_clat_percentiles(const char *name, unsigned int *io_u_plat, uns
 	}
 
 	fprintf(fp,"\n\n Iops Stability");
-	if(readCounter>0 && writeCounter>0){
-		fprintf(fp,"\n%.2f",((float)((float)(min_read_latency+min_write_latency)/((float)(sum_read_latency/readCounter)+((float)sum_write_latency/writeCounter)))));
+	if(fioIntel.readCounter>0 && fioIntel.writeCounter>0){
+		fprintf(fp,"\n%.2f",((float)((float)(min_read_latency+min_write_latency)/((float)(fioIntel.sum_read_latency/fioIntel.readCounter)+((float)fioIntel.sum_write_latency/fioIntel.writeCounter)))));
 	}
 	else{
-		if(readCounter>0){
-			fprintf(fp,"\n%.2f",(float)(min_read_latency/((float)sum_read_latency/readCounter)));
+		if(fioIntel.readCounter>0){
+			fprintf(fp,"\n%.2f",(float)(min_read_latency/((float)fioIntel.sum_read_latency/fioIntel.readCounter)));
 		}
-		else if(writeCounter>0){
-			fprintf(fp,"\n%.2f",(float)(min_write_latency/((float)sum_write_latency/writeCounter)));
+		else if(fioIntel.writeCounter>0){
+			fprintf(fp,"\n%.2f",(float)(min_write_latency/((float)fioIntel.sum_write_latency/fioIntel.writeCounter)));
 		}
 	}
 
 
 	fprintf(fp,"\n");
-	fprintf(fp,"\nTotal Latency Count, Trim Counter, Sync Counter, Invalid Counter, Null Counter");
+	fprintf(fp,"\nTotal Latency Count");
 
-	fprintf(fp,"\n%lu, %lu, %lu, %lu, %lu",globalCounter,trimCounter,syncCounter,invalidCounter,nullCounter);
+	fprintf(fp,"\n%lu",fioIntel.globalCounter);
 
 
 	fclose(fp);
@@ -2197,25 +2201,24 @@ static void myIntelFunc(unsigned long val, enum fio_ddir ddir){
 			25000, 30000, 50000, 100000, 500000, 1000000, 4000000, 10000000, 12000000};
 	int arr_iterator;
 	pthread_mutex_lock(&count_mutex);
-	globalCounter++;
-//	gCountBuffer[myCounter++]=globalCounter;
+	fioIntel.globalCounter++;
 	for(arr_iterator=0;arr_iterator<(sizeof(arr)/sizeof(arr[0]));arr_iterator++){
 		if(val<arr[arr_iterator]){
 			if(ddir==DDIR_READ){
-				readCounter++;
-				countReadArr[arr_iterator]++;
-				sum_read_latency+=val;
-				if(val>=max_read_latency)
-					max_read_latency = val;
+				fioIntel.readCounter++;
+				fioIntel.countReadArr[arr_iterator]++;
+				fioIntel.sum_read_latency+=val;
+				if(val>=fioIntel.max_read_latency)
+					fioIntel.max_read_latency = val;
 				if(val<=min_read_latency)
 					min_read_latency=val;
 			}
 			else if (ddir==DDIR_WRITE){
-				writeCounter++;
-				countWriteArr[arr_iterator]++;
-				sum_write_latency+=val;
-				if(val>=max_write_latency)
-					max_write_latency = val;
+				fioIntel.writeCounter++;
+				fioIntel.countWriteArr[arr_iterator]++;
+				fioIntel.sum_write_latency+=val;
+				if(val>=fioIntel.max_write_latency)
+					fioIntel.max_write_latency = val;
 				if(val<=min_write_latency)
 					min_write_latency=val;
 			}
@@ -2223,38 +2226,25 @@ static void myIntelFunc(unsigned long val, enum fio_ddir ddir){
 		}
 		else if(val>=arr[42]){
 			if(ddir==DDIR_READ){
-				readCounter++;
-				countReadArr[43]++;
-				sum_read_latency+=val;
-				if(val>=max_read_latency)
-					max_read_latency = val;
+				fioIntel.readCounter++;
+				fioIntel.countReadArr[43]++;
+				fioIntel.sum_read_latency+=val;
+				if(val>=fioIntel.max_read_latency)
+					fioIntel.max_read_latency = val;
 				if(val<=min_read_latency)
 					min_read_latency=val;
 			}
 			else if(ddir==DDIR_WRITE){
-				writeCounter++;
-				countWriteArr[43]++;
-				sum_write_latency+=val;
-				if(val>=max_write_latency)
-					max_write_latency = val;
+				fioIntel.writeCounter++;
+				fioIntel.countWriteArr[43]++;
+				fioIntel.sum_write_latency+=val;
+				if(val>=fioIntel.max_write_latency)
+					fioIntel.max_write_latency = val;
 				if(val<=min_write_latency)
 					min_write_latency=val;
 			}
 			break;
 		}
-		else if (ddir==DDIR_TRIM){
-			trimCounter++;
-		}
-		else if (ddir==3){
-			syncCounter++;
-		}
-		else if (ddir==-1){
-			invalidCounter++;
-		}
-		else if (val==NULL){
-			nullCounter++;
-		}
-
 	}
 	pthread_mutex_unlock(&count_mutex);
 }

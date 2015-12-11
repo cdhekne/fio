@@ -18,15 +18,24 @@ struct group_run_stats {
 struct fio_intel{
 	unsigned long int countReadArr[44];
 	unsigned long int countWriteArr[44];
-	unsigned long int read_write_flag;
+	int read_write_flag;
 
 	unsigned long int max_read_latency;
-	unsigned long int min_read_latency;
-	unsigned long int sum_read_latency;
+
+	double sum_read_latency;
+	unsigned long int readCounter;
 
 	unsigned long int max_write_latency;
-	unsigned long int min_write_latency;
-	unsigned long int sum_write_latency;
+
+	double sum_write_latency;
+	unsigned long int writeCounter ;
+//	unsigned long int trimCounter = 0;
+//	unsigned long int invalidCounter = 0;
+	unsigned long int globalCounter;
+//	unsigned long int syncCounter = 0;
+//	unsigned long int nullCounter = 0;
+	//unsigned long int gCountBuffer[10000000] = {0};
+//	unsigned long int myCounter = 0;
 };
 
 
